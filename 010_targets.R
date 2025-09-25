@@ -6,7 +6,7 @@ library(crew)
 use_cores <- floor(parallel::detectCores() * 0.95)
 
 # target options --------
-tar_option_set(packages = c("magrittr", "sf")
+tar_option_set(packages = yaml::read_yaml("settings/packages.yaml") |> unlist() |> unname() |> unique()
                , controller = crew_controller_local(workers = use_cores
                                                     , seconds_interval = 4
                                                     )
