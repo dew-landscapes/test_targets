@@ -1,0 +1,21 @@
+# crs
+crs:
+  proj: 8059 # for projected
+  decdeg: 4326 # for decimal degrees
+# maps
+clip: "aus"
+# data
+data_dir: "../../../data"
+# context
+extent:
+  vector: "aus_imcra_prov_dissolve"
+  filt_col: NULL
+  filt_level: NULL
+  buffer: 0
+  ext_time: "P50Y" # must be a period of years
+  region_taxa: "sa_br_dissolve"
+grain:
+  res_x: 90
+  res_y: 90
+  res_time: "P1Y" # must be either P1M or P1Y (used to set contexts)
+  taxonomic: "species"

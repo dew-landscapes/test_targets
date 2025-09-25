@@ -1,0 +1,31 @@
+packages:
+# tidyverse
+  - dplyr
+  - tidyr
+  - purrr
+  - tibble
+  - readr
+  - forcats
+  - stringr
+  - lubridate
+# data
+  - arrow
+  - galah
+# misc
+  - fs
+  - ConR
+# env
+  - envClean
+  - envFunc
+  - envDistribution
+  - envTargets
+  - envShiny
+# spatial
+  - sf
+  - sfarrow
+  - rmapshaper
+# maps
+  - tmap
+# parallel
+  - future
+  - furrr

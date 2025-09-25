@@ -20,6 +20,8 @@ download_zip_shp <- function(url, out_dir) {
   return(out_dir)
 }
 
+tars <- yaml::read_yaml("_targets.yaml")
+
 list(
   tar_target(taxa
              , tibble::tibble(taxa = unique(stringi::stri_rand_strings(n = 20000, length = 4, pattern = "[A-Za-z]"))) %>%
@@ -77,13 +79,16 @@ list(
                                                       , clip
                                                       )
                                                  , \(a, b, c) {
+                                                   
                                                    mcp <- sf::st_convex_hull(b) |>
                                                      terra::vect() |>
                                                      terra::densify(50000) |>
                                                      sf::st_as_sf() |>
                                                      get(c)(y = aus)
                                                    
-                                                   out_file <- fs::path("files", paste0(a, ".parquet"))
+                                                   out_file <- fs::path(tars$targets$store, "files", paste0(a, ".parquet"))
+                                                   
+                                                   if(!exists(dirname(out_file))) fs::dir_create(dirname(out_file))
                                                    
                                                    sfarrow::st_write_parquet(mcp
                                                                              , out_file
