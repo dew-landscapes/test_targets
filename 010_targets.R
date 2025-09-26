@@ -24,10 +24,11 @@ tars <- yaml::read_yaml("_targets.yaml")
 
 list(
   tar_target(taxa
-             , tibble::tibble(taxa = unique(stringi::stri_rand_strings(n = 20000, length = 4, pattern = "[A-Za-z]"))) %>%
-               dplyr::mutate(n = sample(3:20000, nrow(.))
+             , tibble::tibble(taxa = unique(stringi::stri_rand_strings(n = 30000, length = 4, pattern = "[A-Za-z]"))) %>%
+               dplyr::mutate(n = sample(1:20000, nrow(.), replace = TRUE)
                              , group = rep_len(1:use_cores, length.out = nrow(.))
-                             , clip = sample(c("st_intersection", "st_difference")
+                             , mcp_file = fs::path(tars$targets$store, "files", paste0("mcp_", taxa, ".parquet"))
+                             , clip = sample(c("terr", "not_terr")
                                              , nrow(.)
                                              , replace = TRUE
                                              , prob = c(0.75, 0.25)
@@ -45,9 +46,13 @@ list(
                , download_zip_shp(aus_zip_url, "data")
                , format = "file"
                )
-  , tar_target(aus
+  , tar_target(terr
                , sf::st_read(fs::path(aus_zip, "AUS_2021_AUST_GDA2020.shp")) |>
                  dplyr::filter(AUS_CODE21 == "AUS")
+               )
+  , tar_target(not_terr
+               , sf::st_read(fs::path(aus_zip, "AUS_2021_AUST_GDA2020.shp")) |>
+                 dplyr::filter(AUS_CODE21 != "AUS")
                )
   , tar_target(points, runif(1e6))
   , tar_target(points_x, points * 2000000)
@@ -57,48 +62,34 @@ list(
                  dplyr::mutate(coords = purrr::map(n
                                                    , \(z) tibble::tibble(x = sample(points_x, z)
                                                                          , y = sample(points_y, z)
-                                                                         )
+                                                                         ) |>
+                                                     dplyr::distinct()
                                                    )
                                )
                , pattern = map(taxa)
                )
-  , tar_target(points_sf
-               , coords |>
-                 dplyr::mutate(points_sf = purrr::map(coords
-                                                      , \(x) sf::st_as_sf(x = x, coords = c("x", "y"), crs = 8059) |>
-                                                        dplyr::summarise() |>
-                                                        sf::st_transform(crs = sf::st_crs(aus))
-                                                      )
-                               ) 
-               , pattern = map(coords)
-               )
   , tar_target(mcp
-               , points_sf |>
-                 dplyr::mutate(mcp = purrr::pmap(list(taxa
-                                                      , points_sf
+               , coords |>
+                 dplyr::mutate(mcp = purrr::pmap(list(mcp_file
+                                                      , coords
                                                       , clip
                                                       )
                                                  , \(a, b, c) {
                                                    
-                                                   mcp <- sf::st_convex_hull(b) |>
-                                                     terra::vect() |>
-                                                     terra::densify(50000) |>
-                                                     sf::st_as_sf() |>
-                                                     get(c)(y = aus)
-                                                   
-                                                   out_file <- fs::path(tars$targets$store, "files", paste0(a, ".parquet"))
-                                                   
-                                                   if(!exists(dirname(out_file))) fs::dir_create(dirname(out_file))
-                                                   
-                                                   sfarrow::st_write_parquet(mcp
-                                                                             , out_file
+                                                   envDistribution::make_mcp(presence = b
+                                                                             , out_file = a
+                                                                             , force_new = FALSE
+                                                                             , pres_x = "x"
+                                                                             , pres_y = "y"
+                                                                             , in_crs = 8059
+                                                                             , out_crs = 8059
+                                                                             , buf = 0
+                                                                             , clip = if(c == "terr") terr else not_terr
                                                                              )
-                                                   
-                                                   return(out_file)
                                                    
                                                  }
                                                  )
                                )
-               , pattern = map(points_sf)
+               , pattern = map(coords)
                )
   )
